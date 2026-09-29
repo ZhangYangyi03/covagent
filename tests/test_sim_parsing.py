@@ -25,8 +25,16 @@ def test_zero_hit_bins_are_the_open_ones():
     assert all(b.hits == 0 for b in rep.open_bins)
 
 
+def test_unix_paths_are_left_alone():
+    assert sim.win_to_wsl("/tmp/rtl") == "/tmp/rtl"
+
+
 def test_win_path_maps_to_wsl_mount():
-    assert sim.win_to_wsl(r"D:\\bench\\rtl") == "/mnt/d/bench/rtl"
+    import platform
+    import pytest
+    if platform.system() != "Windows":
+        pytest.skip("the D:\\ -> /mnt/d/ translation is a Windows-only operation")
+    assert sim.win_to_wsl("D:\\bench\\rtl") == "/mnt/d/bench/rtl"
 
 
 def test_parsing_a_missing_file_is_empty_not_fatal():
