@@ -1,0 +1,29 @@
+name: ci
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: install simulator
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq verilator
+          verilator --version
+      - name: install package
+        run: pip install -e . pytest
+      - name: the flow really measures coverage
+        run: |
+          cd bench/rtl
+          make cov
+          test -s obj/cov.dat || (echo "coverage.dat was not written" && exit 1)
+          grep -q "SF:alu.v" coverage.info
+      - name: unit tests
+        run: pytest -q tests -k "not llm"
+      - name: the hole analyser finds the known holes
+        run: python -m covagent holes --dir bench/rtl --rtl alu.v
