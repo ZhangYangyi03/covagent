@@ -1,0 +1,14 @@
+{
+  "design": "seam",
+  "blocks": ["rtl/counter.v", "rtl/sync_fifo.v"],
+  "seams": [
+    {
+      "net": "seam_en",
+      "driver": "en",
+      "sink": "wr_en",
+      "sink_module": "u_fifo",
+      "why": "the producer's enable should reach the FIFO's write port"
+    }
+  ],
+  "note": "blocks/ is a read-only copy of the same two blocks assertforge's bench uses -- the point is that the blocks are identical across every variant below and only the wiring in the testbench changes."
+}

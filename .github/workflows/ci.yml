@@ -25,6 +25,32 @@ jobs:
           grep -q "SF:alu.v" coverage.info
       - name: unit tests
         run: pytest -q tests -k "not llm"
+
+      - name: the boundary check catches a wrong wire the coverage report misses
+        # The claim: two assemblies with the same line coverage are not the same
+        # assembly, and the difference is in the raw database, not the report.
+        # This runs the real simulator over all five variants and asserts each
+        # verdict -- including that the three correct ones are NOT flagged.
+        run: python bench/seam/run_seam.py --json /tmp/seam.json
+
+      - name: the report cannot run the boundary check, and says so
+        # --write-info keeps line records only. The failure mode this guards is a
+        # silent UNEXERCISED verdict for every seam, i.e. a wiring question
+        # answered as a test-quality one.
+        run: |
+          python - <<'PY'
+          import sys, json
+          sys.path.insert(0, ".")
+          from covagent import boundary
+          seams = json.load(open("bench/seam/seam.json"))["seams"]
+          try:
+              boundary.seam_report(seams, "bench/fixtures/seam/info_ok.info")
+          except ValueError as e:
+              assert "raw database" in str(e), e
+              print("refused, as intended:", e)
+          else:
+              raise SystemExit("a converted report was accepted as a database")
+          PY
       - name: the hole analyser finds the known holes
         # exit 2 means "holes remain", which is the correct answer for the
         # lazy testbench this repo ships. The assertion is that the known

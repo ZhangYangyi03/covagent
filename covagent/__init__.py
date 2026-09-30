@@ -7,6 +7,6 @@ went up. Everything else in this package is plumbing for that sentence.
 
 __version__ = "0.1.0"
 
-from . import coverage, holes, sim  # noqa: F401
+from . import boundary, coverage, holes, sim  # noqa: F401
 
-__all__ = ["coverage", "holes", "sim"]
+__all__ = ["boundary", "coverage", "holes", "sim"]

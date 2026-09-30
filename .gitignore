@@ -6,3 +6,4 @@ bench/rtl/obj/
 bench/rtl/annotated/
 bench/rtl/coverage.info
 bench/rtl/cov.dat
+bench/seam/_work/
