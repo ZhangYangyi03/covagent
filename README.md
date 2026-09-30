@@ -111,6 +111,44 @@ Three ways this check could have been wrong, and each one is a test:
     ...::test_converted_report_is_refused_rather_than_answered
       see below
 
+### A reordered bus is invisible to every total
+
+The scalar case above is caught by comparing counts. A bus needs more, and
+`bench/seam/vec/` is the experiment that shows why. Drive an 8-bit bus 0..255 so
+every bit toggles a different number of times -- bit0 256, bit1 128, ... bit7 2.
+That difference is the instrument. Then:
+
+    variant   wire                     line cov   toggles   bits lit   verdict
+    ok        src                      29/35      510       8          CROSSED
+    cond      en ? src : seam_data     29/35      510       8          CROSSED
+    reorder   {src[0], src[7:1]}       30/35      510       8          BIT_MISMATCH/ORDER
+    swapped   {src[6:0], src[7]}       29/35      510       8          BIT_MISMATCH/ORDER
+    shifted   {1'b0, src[7:1]}         27/35      510       7          BIT_MISMATCH/SUPPORT
+    partial   {src[7:4], 4'b0}         29/35      510       4          BIT_MISMATCH/SUPPORT
+    dead      8'd0                     27/35      510       0          NOT_ARRIVED
+
+Read the reorder row twice. It covers MORE lines than the correct assembly, it has
+the same number of toggles, every one of the 8 bits is lit, and the multiset of
+per-bit counts is identical -- bit0's total appears somewhere on the sink in both
+cases. The bus is wired wrong and no number in the report disagrees. Only the
+per-bit PROFILE does:
+
+    driver  {0:256, 1:128, 2:64, 3:32, 4:16, 5:8, 6:4, 7:2}
+    sink    {0:128, 1:64, 2:32, 3:16, 4:8, 5:4, 6:2, 7:256}
+
+So a multi-bit seam is compared bit by bit, and BIT_MISMATCH carries a kind,
+because the three kinds are three different fixes:
+
+    ORDER     same bits lit, counts moved between positions -> the connection is
+              to the wrong bit; nothing is missing, nothing extra arrived
+    SUPPORT   bits toggle at the driver and never at the port -> the wiring does
+              not carry them
+    DRIVER    the port sees bits the driver never moves -> what arrives belongs
+              to another signal
+
+    python bench/seam/vec/run_vec.py            rebuild all seven
+    python bench/seam/vec/run_vec.py --replay   re-read the checked-in dumps
+
 ### Why the report alone cannot do this
 
 `verilator_coverage --write-info` writes lcov, which has line and branch records
@@ -185,8 +223,13 @@ code of its own.
   fault, and why the driver's count is compared in the seam's own scope rather
   than across the hierarchy. It is a check for a wire bound to the wrong driver,
   not a proof that a wire is connected.
-- `boundary.py` is exercised on one seam shape (a combinational net feeding a
-  sub-module port). Multi-bit buses are compared at net level, not per bit.
+- Two seam shapes are exercised and measured: a scalar enable feeding a port
+  (bench/seam/) and an 8-bit bus (bench/seam/vec/). Both fixtures are checked in,
+  so the verdicts are tested without a simulator. Wider buses, buses through
+  several levels of hierarchy, and FSM arc coverage are not covered.
+- A vector seam must name the `width` in the manifest. Without it the seam is
+  compared as a scalar name and a bus with no whole-vector bin reports as
+  UNEXERCISED -- the manifest is load-bearing, not decoration.
 - Testbenches that only build under a commercial simulator (VCS/Xcelium) are not
   covered. The parsing is written against lcov-format output, which verilator
   and VCS both produce, but only verilator is exercised here.

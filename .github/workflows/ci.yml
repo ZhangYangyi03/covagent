@@ -33,6 +33,9 @@ jobs:
         # verdict -- including that the three correct ones are NOT flagged.
         run: python bench/seam/run_seam.py --json /tmp/seam.json
 
+      - name: a reordered bus, which no total can see, is caught per bit
+        run: python bench/seam/vec/run_vec.py --json /tmp/vec.json
+
       - name: the report cannot run the boundary check, and says so
         # --write-info keeps line records only. The failure mode this guards is a
         # silent UNEXERCISED verdict for every seam, i.e. a wiring question

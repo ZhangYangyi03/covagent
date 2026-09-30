@@ -1,0 +1,16 @@
+{
+  "design": "vec",
+  "block": "rtl/sync_fifo.v",
+  "width": 8,
+  "seams": [
+    {
+      "net": "seam_data",
+      "driver": "src",
+      "sink": "wr_data",
+      "sink_module": "u_fifo",
+      "width": 8,
+      "why": "an 8-bit bus from the driver into the FIFO's write port"
+    }
+  ],
+  "note": "the scalar experiment (../) shows a wrong DRIVER is invisible to the line-count report. This one shows a reordered bus is invisible to any total: 510 toggles, 8 bits lit, identical on both sides, and the bus is wired wrong."
+}

@@ -86,7 +86,8 @@ def cmd_boundary(args):
     else:
         print(boundary.summarize(report, args.dump))
     bad = [r for r in report
-           if r["verdict"] in ("BOUND_MISMATCH", "NOT_ARRIVED", "SINK_ONLY")]
+           if r["verdict"] in ("BOUND_MISMATCH", "BIT_MISMATCH", "NOT_ARRIVED",
+                               "SINK_ONLY")]
     if args.json:
         json.dump(report, open(args.json, "w", encoding="utf-8"), indent=2)
         print("wrote %s" % args.json)
