@@ -149,6 +149,16 @@ Any OpenAI-compatible endpoint:
 answers, before any design is touched. `holes` prints the actionable list on its
 own, which is the useful half of this if you already have a testbench you trust.
 
+The boundary check, on a raw database and a seam manifest:
+
+    python -m covagent boundary --dump obj/cov.dat --seam-json bench/seam/seam.json \
+        --info coverage.info
+
+It exits 2 when a seam is bound to the wrong driver, and 1 rather than 2 when it
+is handed a converted report it cannot read -- the difference between "the
+wiring is wrong" and "I was not given the data to say", which is worth an exit
+code of its own.
+
 ## Layout
 
     covagent/coverage.py   report parsers and the Bin/CoverageReport model

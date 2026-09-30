@@ -5,7 +5,7 @@ import json
 import os
 import sys
 
-from . import close, holes, llm, sim
+from . import boundary, close, holes, llm, sim
 
 
 def cmd_doctor(args):
@@ -61,6 +61,38 @@ def cmd_close(args):
     return 0 if res.status in ("DONE", "TARGET", "IMPROVED") else 2
 
 
+def cmd_boundary(args):
+    """Did the right signal cross each declared seam?
+
+    Reads the RAW database, not coverage.info: the conversion keeps line records
+    only, so a report-driven version of this command would report every seam as
+    UNEXERCISED.
+    """
+    if args.seam_json:
+        seams = json.load(open(args.seam_json, encoding="utf-8"))["seams"]
+    elif args.net:
+        seams = [{"net": args.net, "driver": args.driver, "sink": args.sink,
+                  "sink_module": args.sink_module}]
+    else:
+        print("give --seam-json, or --net with --driver/--sink/--sink-module")
+        return 1
+    try:
+        report = boundary.seam_report(seams, args.dump)
+    except ValueError as e:
+        print("cannot check: %s" % e)
+        return 1
+    if args.info:
+        print(boundary.summarize(report, args.dump, args.info if args.info else None))
+    else:
+        print(boundary.summarize(report, args.dump))
+    bad = [r for r in report
+           if r["verdict"] in ("BOUND_MISMATCH", "NOT_ARRIVED", "SINK_ONLY")]
+    if args.json:
+        json.dump(report, open(args.json, "w", encoding="utf-8"), indent=2)
+        print("wrote %s" % args.json)
+    return 2 if bad else 0
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(prog="covagent", description=__doc__)
     p.add_argument("--model", default=None)
@@ -85,6 +117,19 @@ def main(argv=None):
     c.add_argument("--timeout", type=int, default=900)
     c.add_argument("--json", default=None)
     c.set_defaults(func=cmd_close)
+
+    b = sub.add_parser("boundary", help="check the wiring between sub-modules")
+    b.add_argument("--dump", required=True,
+                   help="the RAW verilator coverage database (obj/cov.dat or a "
+                        "--write dump), not coverage.info")
+    b.add_argument("--seam-json", default=None, help="a seam manifest")
+    b.add_argument("--net", default=None, help="one seam: the net under test")
+    b.add_argument("--driver", default=None, help="the net it is declared to come from")
+    b.add_argument("--sink", default=None, help="the port it is declared to feed")
+    b.add_argument("--sink-module", default=None, help="the instance that owns the port")
+    b.add_argument("--info", default=None, help="coverage.info, for the line-coverage line")
+    b.add_argument("--json", default=None)
+    b.set_defaults(func=cmd_boundary)
 
     args = p.parse_args(argv)
     return args.func(args)
