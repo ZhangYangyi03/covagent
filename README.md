@@ -237,3 +237,22 @@ code of its own.
 ## License
 
 Apache-2.0.
+
+
+## Where this sits in the chain
+
+This is one of four tools, and `autoforge` drives them. The sibling that joins
+them is [eda-spine](https://github.com/ZhangYangyi03/eda-spine): it reads the raw
+coverage database with this repo's own parser (`boundary.parse_dump`, `toggles`,
+`bits_of`) rather than the lcov summary, because the summary cannot answer a
+per-bit question at all -- `verilator_coverage --write-info` keeps line records
+only (measured: 27 line records, 0 toggle records).
+
+It also reuses this repo's replacement `sim_main.cpp`, for the same measured
+reason: Verilator's generated main never calls `coveragep()->write()`, so
+`--coverage` alone builds an instrumented binary that throws the data away.
+
+What that chain added is the comparison this repo cannot make alone: on the same
+two mutants, coverage and formal disagree. A stuck bit is a dead bin here and is
+invisible to a property that never mentions it; an inverted enable keeps every
+bit toggling and only the property sees it.
